@@ -84,6 +84,7 @@ public class InternalMeasurementRobot extends TimedRobot {
                 break;
 
             case STOPPED:
+                camera.setEnabled(true);
                 count = 0;
                 sum = 0.0;
                 min = Double.MAX_VALUE;
