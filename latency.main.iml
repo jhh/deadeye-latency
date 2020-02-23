@@ -19,7 +19,7 @@
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-databind:2.10.0" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-annotations:2.10.0" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-core:2.10.0" level="project" />
-    <orderEntry type="library" name="Gradle: org.strykeforce:deadeye:20.6.0" level="project" />
+    <orderEntry type="library" name="Gradle: org.strykeforce:deadeye:20.7.0" level="project" />
     <orderEntry type="library" name="Gradle: com.squareup.moshi:moshi:1.9.2" level="project" />
     <orderEntry type="library" name="Gradle: org.ejml:ejml-fdense:0.38" level="project" />
     <orderEntry type="library" name="Gradle: org.ejml:ejml-dsparse:0.38" level="project" />

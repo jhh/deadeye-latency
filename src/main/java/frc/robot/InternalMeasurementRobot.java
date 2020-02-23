@@ -27,20 +27,24 @@ import static frc.robot.InternalMeasurementRobot.State.*;
 public class InternalMeasurementRobot extends TimedRobot {
 
     enum State {
-        CAMERA_INIT, CAMERA_WAIT, LIGHT_INIT, LIGHT_WAIT, TEST_INIT, TEST_WAIT, TEST_DONE, ERROR, STOPPED
+        RUN_INIT, CAMERA_INIT, CAMERA_WAIT, LIGHT_INIT, LIGHT_WAIT, TEST_INIT, TEST_WAIT, TEST_DONE, DONE, ERROR, STOPPED
     }
 
     private final static boolean TRACE = false;
+    private final static int TEST_RUNS = 10;
 
     private final static Deadeye DEADEYE = Deadeye.INSTANCE;
 
     private State state;
     private long startTime;
     private Camera<MinAreaRectTargetData> camera;
+    private Camera.Pipeline pipeline;
+    private Camera.Capture capture;
     private volatile boolean targetValid;
     private boolean lastValid;
-    private boolean running = true;
     private double sum = 0.0;
+    private double min = Double.MAX_VALUE;
+    private double max = 0.0;
     private int count = 0;
 
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -54,6 +58,9 @@ public class InternalMeasurementRobot extends TimedRobot {
     @Override
     public void robotInit() {
         camera = DEADEYE.getCamera("C0");
+        pipeline = camera.getPipeline();
+        capture = camera.getCapture();
+
         camera.setJsonAdapter(new MinAreaRectTargetDataJsonAdapter(new Moshi.Builder().build()));
         camera.setTargetDataListener(targetData -> {
             targetValid = targetData.getValid();
@@ -61,7 +68,6 @@ public class InternalMeasurementRobot extends TimedRobot {
             if (lastValid != targetValid) {
                 output.set(targetValid);
                 lastValid = targetValid;
-                System.out.println(lastValid);
             }
 
         });
@@ -78,14 +84,22 @@ public class InternalMeasurementRobot extends TimedRobot {
                 break;
 
             case STOPPED:
+                count = 0;
+                sum = 0.0;
+                min = Double.MAX_VALUE;
+                max = 0.0;
+                pipeline = camera.getPipeline();
+                capture = camera.getCapture();
+                targetValid = false;
+                lastValid = false;
+
                 if (RobotController.getUserButton()) {
-                    running = false;
-                    camera.setEnabled(false);
-                    System.out.printf("Running = %b\n", running);
+                    setState(RUN_INIT);
                 }
-                if (running) {
-                    setState(CAMERA_INIT);
-                }
+                break;
+
+            case RUN_INIT:
+                setState(CAMERA_INIT);
                 break;
 
             case CAMERA_INIT:
@@ -176,15 +190,25 @@ public class InternalMeasurementRobot extends TimedRobot {
                     double latency = (targetValidTime.get() - start) / 1e6;
                     count++;
                     sum += latency;
-                    System.out.printf("Latency: %f msec, %f msec average\n", latency, sum / count);
+                    min = Double.min(min, latency);
+                    max = Double.max(max, latency);
+                    System.out.printf("Run %d: latency: %f msec\n", count, latency);
                 } catch (InterruptedException | ExecutionException e) {
                     e.printStackTrace();
                 }
-                setState(STOPPED);
-
+                if (count < TEST_RUNS) {
+                    setState(RUN_INIT);
+                    break;
+                }
+                setState(DONE);
                 break;
 
+            case DONE:
 
+                System.out.printf("Camera: %s: size: %dx%d, fps: %d, %s\n", camera.getId(), capture.getOutputWidth(),
+                        capture.getOutputHeight(), capture.getFps(), pipeline.getFilter());
+                System.out.printf("            count = %d, avg. latency = %f, min = %f, max = %f \n", count, sum / count, min, max);
+                setState(STOPPED);
         }
     }
 
